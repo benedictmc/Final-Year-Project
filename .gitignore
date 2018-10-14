@@ -1,1 +1,5 @@
 *.txt
+
+models/
+logs/
+dataset_files/

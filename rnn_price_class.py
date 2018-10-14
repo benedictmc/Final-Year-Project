@@ -14,29 +14,28 @@ from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 class PriceClassification():
     SEQ_LENGTH = 60 
     PERIOD = 3
-    EPOCHS = 15
-    BATCH_SIZE = 64
+    EPOCHS = 60
+    BATCH_SIZE = 128
     NAME = 'MODEL SEQ_LEN{}_PRED_{}'.format(str(60), str(time.time()))
 
-    def __init__(self, filename, coin_context):
-        # datetime.fromtimestamp(int(x)/1000).strftime('%Y-%m-%d') for x in time
+    def __init__(self):
+        print("Calling binance script ...")
+        filename = 'indicators.csv'
         if os.path.exists(filename):
-            print("Reading in dataset")
-            self.coin_context = coin_context
+            print("Reading in dataset with filename {}".format(filename))
             self.dataset = pd.read_csv(filename, index_col=0)
-            self.dataset = self.dataset.drop('future', 1)
             self.validation_df, self.train_df = self.get_fivepct()
 
             # Building Training Data
-            self.train_df = self.preprocess(self.train_df)
             train_seq = self.build_sequences(self.train_df)
             X_train, y_train = self.extract_feature_labels(train_seq)
+
             # Building Validation Data
-            self.validation_df = self.preprocess(self.validation_df)
             validate_seq = self.build_sequences(self.validation_df)
             X_val, y_val = self.extract_feature_labels(validate_seq)
             self.print_statistics(X_train, X_val, y_train, y_val)
             self.build_model(X_train, X_val, y_train, y_val)
+
         else:
             print("Dataset {} not found. Program exiting".format(filename))
 
@@ -46,18 +45,6 @@ class PriceClassification():
         validation_df = self.dataset[(self.dataset.index >= last_5pct)]
         train_df = self.dataset[(self.dataset.index < last_5pct)]
         return validation_df, train_df
-
-
-    def preprocess(self, df):
-        for col in df.columns:
-            if col != 'target':
-                df[col] = df[col].pct_change()
-                df = df.replace([np.inf, -np.inf], np.nan)
-                df = df.dropna()
-                df[col] = preprocessing.scale(df[col].values)
-                df.dropna(inplace=True)
-        return df
-
 
     def build_sequences(self, df):
         sequential_data = []
@@ -76,9 +63,10 @@ class PriceClassification():
                 buys.append([seq, target])
             else:
                 sells.append([seq, target])
-        lower = min(len(buys), len(sells))
 
-        buys, sells = buys[:lower], sells[:lower] 
+        
+        lower = min(len(buys), len(sells))
+        buys, sells = buys[:lower], sells[:lower]
         sequential_data = buys + sells
         random.shuffle(sequential_data)
 
@@ -93,8 +81,8 @@ class PriceClassification():
 
     def print_statistics(self, X_train, X_val, y_train, y_val):
         print("Train Data Length: {}, Validatation Data Length: {}".format(len(X_train), len(X_val) ))
-        print("TRAIN: Amount of don't Buys: {}, Amount of Buys: {}".format(y_train.count(0), y_train.count(1)))
-        print("VALIDATE: Amount of don't Buys: {}, Amount of Buys: {}".format(y_val.count(0), y_val.count(1)))
+        print("TRAIN: Amount of Sells: {}, Amount of Buys: {}, Amount of holds: na".format(y_train.count(0), y_train.count(1)))
+        print("VALIDATE: Amount of Sells: {}, Amount of Buys: {}, Amount of holds: na".format(y_val.count(0), y_val.count(1)))
 
 
 
@@ -105,11 +93,11 @@ class PriceClassification():
         model.add(Dropout(0.2))
         model.add(BatchNormalization())
 
-        model.add(CuDNNLSTM(128, input_shape=(X_train.shape[1:]), return_sequences=True))
-        model.add(Dropout(0.2))
+        model.add(CuDNNLSTM(128, return_sequences=True))
+        model.add(Dropout(0.1))
         model.add(BatchNormalization())
 
-        model.add(CuDNNLSTM(128, input_shape=(X_train.shape[1:])))
+        model.add(CuDNNLSTM(128))
         model.add(Dropout(0.2))
         model.add(BatchNormalization())
         
@@ -124,8 +112,8 @@ class PriceClassification():
 
         tensorboard = TensorBoard(log_dir='logs/{}'.format(PriceClassification.NAME))
 
-        filepath = "RNN_Final-{epoch:02d}-{val_acc:.3f}_{}"
-        checkpoint = ModelCheckpoint("models_xrp/{}.model".format(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')) 
+        filepath = "RNN_Final-{epoch:02d}-{val_acc:.3f}"
+        checkpoint = ModelCheckpoint("models/{}.model".format(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')) 
 
         history = model.fit(X_train, y_train,
                         batch_size=PriceClassification.BATCH_SIZE,
@@ -133,6 +121,13 @@ class PriceClassification():
                         validation_data=(X_val, y_val),
                         callbacks=[tensorboard, checkpoint])
 
+        # Score model
+        score = model.evaluate(X_val, y_val, verbose=0)
+        print('Test loss:', score[0])
+        print('Test accuracy:', score[1])
+        # Save model
+        model.save("models/{}".format(PriceClassification.NAME))
+
 
     
-x = PriceClassification("dataset_files/dataset_20-15-02_XRP_min.csv", "XRP")
+x = PriceClassification()
