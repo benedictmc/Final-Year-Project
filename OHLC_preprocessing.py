@@ -17,15 +17,9 @@ class OHLCPreprocess():
 
     def __init__(self):
         self.METHOD_CALLS = {
-            'momentum': self.momentum,
             'stochastic': self.stochastic,
             'williams': self.williams,
-            "acc_dist" : self.acc_dist,
-            "macd" : self.macd,
-            "PROC" : self.PROC,
-            "cci" : self.cci,
-            "bollinger_bands" : self.bollinger_bands,
-            "H L averages" : self.averages
+            "bollinger_bands" : self.bollinger_bands
         }
         time = 'minute'
         if time == 'minute':
@@ -38,12 +32,14 @@ class OHLCPreprocess():
             self.data = pd.read_csv('dataset_files/master/hour/master_dataset_BTC.csv', index_col=0)
             filename = 'dataset_files/training_sets/hourly_indicators.csv'
 
+        # self.data = self.data.tail(2000)
+
         ##Reduces row size to 200 for time sake        
         self.data.index = [datetime.fromtimestamp(int(x)).strftime('%d.%m.%Y %H:%M:%S') for x in self.data.index]
         ##Creates an index variable as this will be used often
         self.index =  self.data.index
 
-        self.all_data = self.combine_indicators()
+        self.all_data = self.combine_indicators() 
 
         for col in self.all_data.columns:
             if col != 'close':
@@ -53,7 +49,7 @@ class OHLCPreprocess():
 
         for col in self.all_data.columns:
             if col != 'close':
-                self.all_data[col] = preprocessing.scale(self.all_data[col].values)
+                self.all_data[col] = self.preprocess(self.all_data[col].values)
 
         self.all_data = self.all_data.replace([np.inf, -np.inf], np.nan)
         self.all_data.dropna(inplace=True)
@@ -147,9 +143,10 @@ class OHLCPreprocess():
         ## Periods is the list of periods to compute the fourier function on 
         periods = [10, 15]
         prices = self.data.Close
+
         fourier_dict = {}
         detrended = self.detrend_data()
-        plot = True
+        plot = False
         print('Starting fourier fucntion ...')
         for period in periods:
             coeffs = []
@@ -161,9 +158,7 @@ class OHLCPreprocess():
                     warnings.simplefilter('error', scipy.optimize.OptimizeWarning)
                     try:
                         result = scipy.optimize.curve_fit(self.fourier_fit,x,y.values)
-                        print('Sucess paramameters saved')
                     except:
-                        print('Didnt work')
                         result = np.empty((1,4))
                         result[0,:] =np.NAN
 
@@ -178,7 +173,7 @@ class OHLCPreprocess():
                 coeffs = np.append(coeffs, result[0], axis=0)
 
             coeffs = np.array(coeffs).reshape(len(coeffs)/4,4)
-            df = pd.DataFrame(coeffs, index =prices.iloc[period:-period])
+            df = pd.DataFrame(coeffs, index =self.index)
             df.columns = [['a0','a1','b1','w']]
             df.fillna(method='bfill', inplace=True)
             fourier_dict[period] = df
@@ -364,9 +359,10 @@ class OHLCPreprocess():
             return 0
 
     def preprocess(self, values):
-        values = values.values.reshape(-1,1)
-        scaler = preprocessing.MinMaxScaler()
-        scaled_col = scaler.fit_transform(values)
+        scaled_col  = (values - np.mean(values)) /np.std(values)
+        # values = values.values.reshape(-1,1)
+        # scaler = preprocessing.MinMaxScaler()
+        # scaled_col = scaler.fit_transform(values)
         return scaled_col
 
 x = OHLCPreprocess()
