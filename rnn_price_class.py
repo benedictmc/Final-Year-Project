@@ -20,7 +20,11 @@ class PriceClassification():
 
     def __init__(self):
         print("Calling binance script ...")
-        filename = 'indicators.csv'
+        hour = False
+        if hour:
+            filename = 'dataset_files/training_sets/hourly_indicators.csv'
+        else:
+            filename = 'dataset_files/training_sets/minute_indicators.csv'
         if os.path.exists(filename):
             print("Reading in dataset with filename {}".format(filename))
             self.dataset = pd.read_csv(filename, index_col=0)
@@ -64,7 +68,7 @@ class PriceClassification():
             else:
                 sells.append([seq, target])
 
-        
+        print('The length of buys is {}, The length of sells is {}'.format(len(buys), len(sells)))
         lower = min(len(buys), len(sells))
         buys, sells = buys[:lower], sells[:lower]
         sequential_data = buys + sells

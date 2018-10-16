@@ -20,57 +20,88 @@ class TradingSimulator():
             keys = keys.split(',')
             TradingSimulator.API, TradingSimulator.API_SECRET = keys[0], keys[1]
         self.client = Client(TradingSimulator.API, TradingSimulator.API_SECRET)
-        self.filepath ='models/RNN_Final-05-0.881.model'
+        self.filepath ='models/RNN_Final-06-0.886.model'
         self.coin = coin
-        Update.BinanceDS()
+        # Update.BinanceDS('minute')
         ds_filepath = 'dataset_files/master/master_dataset_{}.csv'.format(coin)
         df = pd.read_csv(ds_filepath, index_col=0)
-        self.dataset = df.tail(3000)
+        self.dataset = df.tail(300)
         post_process = Trading.OHLCPreprocess(self.dataset)
+
+
         self.market_data = post_process.all_data
-        # print(post_process.close_data)
-        self.X, index_list = self.build_sequences(self.market_data)
-        # self.find_close_test()
-        self.x_df = pd.DataFrame(columns=['x', 'close'], index=index_list)
-        for i in range(0, len(self.x_df)):
-            self.x_df.iloc[i].x = self.X[i]
-        self.x_df.close = post_process.close_data
-        balance, crypto_cal = self.simulate_trading(self.filepath)
-        print('Simulation ended: End balance is {} and crypto balance is {}'.format(balance, crypto_cal))
+        sequential_data, index_list = self.build_sequences(self.market_data)
+        # self.X, self.y = self.extract_feature_labels(sequential_data)
+
+        # self.x_df = pd.DataFrame(columns=['x','y','close'], index=index_list)
+        # for i in range(0, len(self.x_df)):
+        #     self.x_df.iloc[i].x = self.X[i]
+        #     self.x_df.iloc[i].y = self.y[i]
+        # self.x_df.close = post_process.close_data
+        # self.verify_y()
+
+        # balance, crypto_cal = self.simulate_trading(self.filepath)
+        # print('Simulation ended: End balance is {} and crypto balance is {}'.format(balance, crypto_cal))
 
         # self.start_real_time()
 
 
+    def verify_y(self):
+        furture_close = self.x_df.close.shift(-3)
+        for i in range(0, len(self.x_df)-3):
+            if self.x_df.close.iloc[i]*1.00055 < furture_close[i]:
+                print('Current and Future was {} and {}'.format(self.x_df.close.iloc[i]*1.00055, furture_close[i]))
+                print(self.x_df.y.iloc[i])
+            else:
+                print('y was {}'.format(self.x_df.y.iloc[i]))
+    
     def build_sequences(self, df):
         sequential_data, index_list = [], []
         prev_days = deque(maxlen = TradingSimulator.SEQ_LENGTH)
         for index, row in df.iterrows():
-            prev_days.append([n for n in row])
+            prev_days.append([n for n in row[:-1]])
             if len(prev_days) == TradingSimulator.SEQ_LENGTH:
-                sequential_data.append(np.array(prev_days))
+                sequential_data.append([np.array(prev_days), row[-1]])
                 index_list.append(index)
-        return np.array(sequential_data), index_list
+        return sequential_data, index_list
+
+    def extract_feature_labels(self, seq_data):
+        X, y = [], []
+        for seq, target in seq_data:
+            X.append(seq)
+            y.append(target)
+        return np.array(X), y
 
     def simulate_trading(self, filepath):
         self.model = load_model(filepath)
         predicted_y = self.model.predict_classes(self.X, batch_size = 128)
-    
+        correct, false = 0,0
         balance, crypto_bal, bought, sold = 500, 0, False, True
-        for prediction, close in zip(predicted_y, self.x_df.close.values):
+        for prediction, y, close in zip(predicted_y, self.x_df.y.values, self.x_df.close.values):
             if prediction == 1 and not bought:
                 crypto_bal = balance/close
                 bought, sold = True, False
+                balance = 0
                 print('Buying: Price {} Cryto Balance {}'.format(close, crypto_bal))
+                print('Predicted y: {}, Actual y: {}'.format(prediction, y))
+                print('****************')
             if prediction == 1 and bought:
                 print('Holding: Price {} still holding'.format(close))
             if prediction == 0 and bought:
                 balance = crypto_bal*close
                 bought, sold = False, True
+                crypto_bal = 0
                 print('Selling: Price {} Balance {}'.format(close, balance))
+                print('Predicted y: {}, Actual y: {}'.format(prediction, y))
+                print('****************')
             if prediction == 0 and sold:
                 print('Waiting: Price {} still holding'.format(close))
+            if prediction == y:
+                correct +=1
+            else:
+                false +=1
 
-
+        print('There was {} amount of correct predictions, and {} amount of false predictions'.format(correct, false))
         return balance, crypto_bal
 
 

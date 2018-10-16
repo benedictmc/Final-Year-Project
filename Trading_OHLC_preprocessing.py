@@ -35,13 +35,15 @@ class OHLCPreprocess():
         ##Creates an index variable as this will be used often
         self.index =  self.data.index
         self.close_data = self.data.Close
-        
         self.all_data = self.combine_indicators()
+        self.all_data['close'] = self.data.Close
         for col in self.all_data.columns:
-            self.all_data[col] = preprocessing.scale(self.all_data[col].values)
-
+            if col != 'close':
+                self.all_data[col] = preprocessing.scale(self.all_data[col].values)
         self.all_data = self.all_data.replace([np.inf, -np.inf], np.nan)
         self.all_data.dropna(inplace=True)
+
+        self.build_classification()
 
     def combine_indicators(self):
         all_df = pd.DataFrame(index=self.data.index)
@@ -323,14 +325,15 @@ class OHLCPreprocess():
         ms_df = pd.DataFrame(ms, index= self.data.iloc[period:-period].index)
         return ms_df
 
-    def build_classification(self, coin):
-
+    def build_classification(self):
         print("Getting target classification information")
-        self.all_data['future'] = self.data.Close.shift(-3)
-        self.all_data['target'] = list(map(self.get_class, self.data.Close,  self.all_data['future']))
+        self.all_data['future'] =  self.all_data.close.shift(-3)
+        self.all_data['diff'] = self.all_data['future'] - self.data.Close
+        self.all_data['target'] = list(map(self.get_class, self.all_data.close,  self.all_data['future'].values))
         self.all_data = self.all_data.drop('future', 1)
 
     def get_class(self, current, future):
+        print('Current is {} and Furture is {}'.format(current, future))
         if float(current)*1.00055 < float(future) :
             return 1
         else:

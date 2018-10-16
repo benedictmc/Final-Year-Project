@@ -27,28 +27,49 @@ class OHLCPreprocess():
             "bollinger_bands" : self.bollinger_bands,
             "H L averages" : self.averages
         }
-
+        time = 'minute'
+        if time == 'minute':
+            print('Running OHLC preprocessing for minute time period')
+            ##Initialse dataframe from master BTC datafile. Datafile is in minute time periods
+            self.data = pd.read_csv('dataset_files/master/master_dataset_BTC.csv', index_col=0)
+            filename = 'dataset_files/training_sets/minute_indicators.csv'
+        elif time == 'hour':
         ##Initialse dataframe from master BTC datafile. Datafile is in minute time periods
-        self.data = pd.read_csv('dataset_files/master/master_dataset_BTC.csv', index_col=0)
+            self.data = pd.read_csv('dataset_files/master/hour/master_dataset_BTC.csv', index_col=0)
+            filename = 'dataset_files/training_sets/hourly_indicators.csv'
+
         ##Reduces row size to 200 for time sake        
         self.data.index = [datetime.fromtimestamp(int(x)).strftime('%d.%m.%Y %H:%M:%S') for x in self.data.index]
         ##Creates an index variable as this will be used often
         self.index =  self.data.index
 
         self.all_data = self.combine_indicators()
+
         for col in self.all_data.columns:
-            self.all_data[col] = preprocessing.scale(self.all_data[col].values)#
+            if col != 'close':
+                self.all_data[col] = self.get_percentage_change(self.all_data[col])
+        self.all_data = self.all_data.replace([np.inf, -np.inf], np.nan)
+        self.all_data.dropna(inplace=True)
+
+        for col in self.all_data.columns:
+            if col != 'close':
+                self.all_data[col] = preprocessing.scale(self.all_data[col].values)
 
         self.all_data = self.all_data.replace([np.inf, -np.inf], np.nan)
-        self.all_data = self.all_data.dropna()
+        self.all_data.dropna(inplace=True)
 
         self.all_data.dropna(inplace=True)
+        drop = len(self.data.index)-len(self.all_data.index)
+        self.data = self.data.iloc[drop:]
+
         self.build_classification('BTC')
 
-        self.all_data.to_csv('indicators.csv')
+        self.all_data.to_csv(filename)
 
     def combine_indicators(self):
         all_df = pd.DataFrame(index=self.data.index)
+        all_df['close'] = self.data.Close
+
         with open('metadata/period_lists.json', 'r') as f:
             data_list = json.load(f)
 
@@ -266,6 +287,9 @@ class OHLCPreprocess():
         percent_change = (close - close.shift(1))/close.shift(1)
         df['%_change'] = percent_change
         return df
+
+    def get_percentage_change(self, values):
+        return (values-values.shift(1))/values.shift(1) 
    
     ##TODO need to fix so current index is not being cut off
     def acc_dist(self, period):
@@ -328,10 +352,9 @@ class OHLCPreprocess():
         return ms_df
 
     def build_classification(self, coin):
-
         print("Getting target classification information")
-        self.all_data['future'] = self.data.Close.shift(-3)
-        self.all_data['target'] = list(map(self.get_class, self.data.Close,  self.all_data['future']))
+        self.all_data['future'] = self.all_data.close.shift(-3)
+        self.all_data['target'] = list(map(self.get_class, self.all_data.close,  self.all_data['future']))
         self.all_data = self.all_data.drop('future', 1)
 
     def get_class(self, current, future):
