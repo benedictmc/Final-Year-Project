@@ -12,7 +12,7 @@ from tensorflow.keras.layers import Dense, Dropout, LSTM, CuDNNLSTM, BatchNormal
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 
 class PriceClassification():
-    SEQ_LENGTH = 30 
+    SEQ_LENGTH = 15
     PERIOD = 3
     EPOCHS = 60
     BATCH_SIZE = 128
@@ -92,7 +92,6 @@ class PriceClassification():
 
     def build_model(self, X_train, X_val, y_train, y_val):
         model = Sequential()
-        input_length = len(X_train[0])
 
         model.add(CuDNNLSTM(128, input_shape=(X_train.shape[1:]), return_sequences=True))
         model.add(Dropout(0.2))

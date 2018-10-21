@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 
 class TradingSimulator():
-    SEQ_LENGTH = 60 
+    SEQ_LENGTH = 15 
     API, API_SECRET = '', ''
 
 
@@ -19,8 +19,8 @@ class TradingSimulator():
             keys = f.read()
             keys = keys.split(',')
             TradingSimulator.API, TradingSimulator.API_SECRET = keys[0], keys[1]
-        self.client = Client(TradingSimulator.API, TradingSimulator.API_SECRET)
-        self.filepath ='models/RNN_Final-06-0.886.model'
+        # self.client = Client(TradingSimulator.API, TradingSimulator.API_SECRET)
+        self.filepath ='models/RNN_Final-12-0.548.model'
         self.coin = coin
         # Update.BinanceDS('minute')
         ds_filepath = 'dataset_files/master/master_dataset_{}.csv'.format(coin)
@@ -29,19 +29,19 @@ class TradingSimulator():
         post_process = Trading.OHLCPreprocess(self.dataset)
 
 
-        self.market_data = post_process.all_data
+        self.market_data = post_process.post_process_df
         sequential_data, index_list = self.build_sequences(self.market_data)
-        # self.X, self.y = self.extract_feature_labels(sequential_data)
+        self.X, self.y = self.extract_feature_labels(sequential_data)
 
-        # self.x_df = pd.DataFrame(columns=['x','y','close'], index=index_list)
-        # for i in range(0, len(self.x_df)):
-        #     self.x_df.iloc[i].x = self.X[i]
-        #     self.x_df.iloc[i].y = self.y[i]
-        # self.x_df.close = post_process.close_data
-        # self.verify_y()
-
-        # balance, crypto_cal = self.simulate_trading(self.filepath)
-        # print('Simulation ended: End balance is {} and crypto balance is {}'.format(balance, crypto_cal))
+        self.x_df = pd.DataFrame(columns=['x','y','close'], index=index_list)
+        close = post_process.close_data
+        for i in range(0, len(self.x_df)):
+            self.x_df.iloc[i].x = self.X[i]
+            self.x_df.iloc[i].y = self.y[i]
+            self.x_df.iloc[i].close = close.iloc[i]
+        print(self.x_df.close) 
+        balance, crypto_cal = self.simulate_trading(self.filepath)
+        print('Simulation ended: End balance is {} and crypto balance is {}'.format(balance, crypto_cal))
 
         # self.start_real_time()
 
@@ -49,7 +49,7 @@ class TradingSimulator():
     def verify_y(self):
         furture_close = self.x_df.close.shift(-3)
         for i in range(0, len(self.x_df)-3):
-            if self.x_df.close.iloc[i]*1.00055 < furture_close[i]:
+            if self.x_df.close.iloc[i] < furture_close[i]:
                 print('Current and Future was {} and {}'.format(self.x_df.close.iloc[i]*1.00055, furture_close[i]))
                 print(self.x_df.y.iloc[i])
             else:
@@ -61,7 +61,7 @@ class TradingSimulator():
         for index, row in df.iterrows():
             prev_days.append([n for n in row[:-1]])
             if len(prev_days) == TradingSimulator.SEQ_LENGTH:
-                sequential_data.append([np.array(prev_days), row[-1]])
+                sequential_data.append([np.array(prev_days), row.iloc[-1]])
                 index_list.append(index)
         return sequential_data, index_list
 

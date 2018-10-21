@@ -1,11 +1,13 @@
 {
     "momentum" : [3,4,5,6,8,9,10],
-    "stochastic" : [3,4,5,8,9,10],
-    "williams" : [6,7,8,9,10],
+    "stochastic" : [5,9],
+    "williams" : [12],
     "acc_dist" : [2,3,4,5],
     "macd" : [],
     "PROC" : [],
     "cci" : [],
     "bollinger_bands" : [],
-    "H L averages" : [2]
+    "H L averages" : [2],
+    "moving_averages" : [5,6,10,20],
+    "rsi":[6,12]
 }

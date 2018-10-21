@@ -17,9 +17,13 @@ class OHLCPreprocess():
 
     def __init__(self):
         self.METHOD_CALLS = {
+            'moving_averages' : self.moving_averages,
+            "rsi": self.rsi,
             'stochastic': self.stochastic,
+            'macd' : self.macd,
             'williams': self.williams,
-            "bollinger_bands" : self.bollinger_bands
+            "bollinger_bands" : self.bollinger_bands,
+            
         }
         time = 'minute'
         if time == 'minute':
@@ -40,27 +44,27 @@ class OHLCPreprocess():
         self.index =  self.data.index
 
         self.all_data = self.combine_indicators() 
+        self.all_data['volume'] = self.data['Volume'] 
 
-        for col in self.all_data.columns:
+        change_df = pd.DataFrame(index=self.index)
+        diff_list = ['ma_5','ma_6','ma_10','%b_bands','midlle_bands','rsi_6','rsi_12','williams_12','9_kstochastic','9_dstochastic','macd_hist']
+
+        for col in diff_list:
             if col != 'close':
-                self.all_data[col] = self.get_percentage_change(self.all_data[col])
+                change_df[f'%_{col}'] = self.get_percentage_change(self.all_data[col])
+
+        self.all_data = pd.concat([self.all_data, change_df], axis=1, join='inner')
         self.all_data = self.all_data.replace([np.inf, -np.inf], np.nan)
         self.all_data.dropna(inplace=True)
-
-        for col in self.all_data.columns:
-            if col != 'close':
-                self.all_data[col] = self.preprocess(self.all_data[col].values)
-
-        self.all_data = self.all_data.replace([np.inf, -np.inf], np.nan)
-        self.all_data.dropna(inplace=True)
-
-        self.all_data.dropna(inplace=True)
-        drop = len(self.data.index)-len(self.all_data.index)
-        self.data = self.data.iloc[drop:]
 
         self.build_classification('BTC')
+        length = len(self.all_data)
+        min_max_arr = self.preprocess(self.all_data)
+        for i in range(length):
+            np.append(min_max_arr[i], int(self.all_data.target.iloc[i]))
 
-        self.all_data.to_csv(filename)
+        self.post_process_df = pd.DataFrame(min_max_arr)
+        self.post_process_df.to_csv(filename)
 
     def combine_indicators(self):
         all_df = pd.DataFrame(index=self.data.index)
@@ -89,7 +93,20 @@ class OHLCPreprocess():
                     all_df = pd.concat([all_df, function()], axis=1, join='inner')
         all_df.dropna(inplace=True)
         return all_df
-            
+
+
+    def moving_averages(self, period):
+        df = pd.DataFrame(index=self.index)
+        close = self.data.Close    
+        df[f'ma_{period}'] = close.rolling(period).mean()
+        return df       
+        
+    def rsi(self, period):
+        df = pd.DataFrame(index=self.index)
+        close = self.data.Close    
+        rsi = talib.RSI(close, timeperiod=14)    
+        df[f'rsi_{period}'] = rsi
+        return df
 
     ##Calculates heikanashi candles from OHLC data 
     def heikanashi_candles(self):
@@ -257,8 +274,13 @@ class OHLCPreprocess():
                             slowk_matype=0, 
                             slowd_period=3, 
                             slowd_matype=0)
-        ##Returning the difference between K line and D line. This means closer to zero means a crossover
-        df['stochastic_{}'.format(str(period))] = (slowk - slowd)
+        if period == 9:
+            df['9_kstochastic'] = slowk
+            df['9_dstochastic'] = slowd
+        else:
+            ##Returning the difference between K line and D line. This means closer to zero means a crossover
+            df['stochastic_{}'.format(str(period))] = (slowk - slowd)
+        
         return df
 
     def momentum(self, period):
@@ -353,16 +375,15 @@ class OHLCPreprocess():
         self.all_data = self.all_data.drop('future', 1)
 
     def get_class(self, current, future):
-        if float(current)*1.00055 < float(future) :
+        if float(current)< float(future) :
             return 1
         else:
             return 0
 
-    def preprocess(self, values):
-        scaled_col  = (values - np.mean(values)) /np.std(values)
-        # values = values.values.reshape(-1,1)
-        # scaler = preprocessing.MinMaxScaler()
-        # scaled_col = scaler.fit_transform(values)
-        return scaled_col
+    def preprocess(self, df):
+        minmax_scale = preprocessing.MinMaxScaler().fit(df)
+        df_minmax = minmax_scale.transform(df)
+        return df_minmax
+
 
 x = OHLCPreprocess()
