@@ -16,6 +16,7 @@ import json
 class OHLCPreprocess():
 
     def __init__(self, data):
+        self.tz_pytz = pd.pytz.timezone('Europe/London')
         self.METHOD_CALLS = {
             'moving_averages' : self.moving_averages,
             "rsi": self.rsi,

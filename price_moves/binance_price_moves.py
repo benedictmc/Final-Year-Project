@@ -20,8 +20,7 @@ class PriceMoves():
         for ticker in tickers:
            self.pairs.append(ticker['symbol'])
 
-
-        self.plot_move('Salt Coin')
+        self.get_prices()
         # self.load_close()
         # self.google_values()
 
@@ -30,15 +29,16 @@ class PriceMoves():
         for pair in self.pairs:
             print(f'Getting price data for {pair}')
             df = pd.DataFrame()
-            price_data = self.client.get_historical_klines(pair, Client.KLINE_INTERVAL_1DAY, "30 day ago GMT")
+            price_data = self.client.get_historical_klines(pair, Client.KLINE_INTERVAL_1HOUR, "30 day ago GMT")
             for index, col in enumerate(column_list):
                 if col == 'date':
-                    df['date'] = [int(entry[0])/1000 for entry in price_data]
+                    df['date'] = [(int(entry[0])/1000) for entry in price_data]
                     continue
                 df[col] = [entry[index] for entry in price_data]
                 df[col] = df[col].astype('float64')
+            df.set_index('date', inplace=True)
             print('Finished. Saving to csv')
-            df.to_csv(f'../dataset_files/price_moves/{pair}.csv')
+            df.to_csv(f'../dataset_files/price_moves/hour/{pair}.csv')
 
 
     def load_close(self):
@@ -58,7 +58,7 @@ class PriceMoves():
 
     def google_values(self):
         from pytrends.request import TrendReq
-        kw_list = ["salt coin"]
+        kw_list = ["dock coin"]
         pytrends = TrendReq(hl='en-US', tz=360)
         x = pytrends.get_historical_interest(kw_list, year_start=2018, month_start=10, day_start=1, year_end=2018, month_end=10, day_end=20, sleep=0)
         x.to_csv(f'../dataset_files/google_trends/{kw_list[0]}.csv')
