@@ -68,7 +68,6 @@ class PriceClassification():
 
             self.y_arr =np.zeros((len(y_test), len(self.validation_df[0])))
             # self.y_arr[:, 13] = y_test
-            print(self.y_arr.shape)
             self.build_model(X_train, y_train, X_test, y_test) 
 
         else:
@@ -117,46 +116,47 @@ class PriceClassification():
 
 
     def build_model(self, X_train, y_train, X_test, y_test):
-        model = Sequential()
+        print(f'X_train {X_train.shape[1:]}')
+        # model = Sequential()
 
-        model.add(CuDNNLSTM(32, input_shape=(X_train.shape[1:]), return_sequences=True))
-        model.add(Dropout(0.25))
-        model.add(CuDNNLSTM(32))
-        model.add(Dense(1))
-        opt = tf.keras.optimizers.Adam(lr=0.001, decay=1e-6)
-        model.compile(loss='mse',optimizer=opt )
+        # model.add(CuDNNLSTM(32, input_shape=(X_train.shape[1:]), return_sequences=True))
+        # model.add(Dropout(0.25))
+        # model.add(CuDNNLSTM(32))
+        # model.add(Dense(1))
+        # opt = tf.keras.optimizers.Adam(lr=0.001, decay=1e-6)
+        # model.compile(loss='mse',optimizer=opt )
 
-        tensorboard = TensorBoard(log_dir='logs/{}'.format(PriceClassification.NAME))
-        filepath = "RNN_Final-{epoch:02d}-{loss:.3f}"
-        checkpoint = ModelCheckpoint("../models/{}.model".format(filepath, monitor='loss', verbose=1, save_best_only=True, mode='max')) 
+        # tensorboard = TensorBoard(log_dir='logs/{}'.format(PriceClassification.NAME))
+        # filepath = "RNN_Final-{epoch:02d}-{loss:.3f}"
+        # checkpoint = ModelCheckpoint("../models/{}.model".format(filepath, monitor='loss', verbose=1, save_best_only=True, mode='max')) 
 
-        model.fit(X_train, y_train, epochs=10, batch_size=16, shuffle=False, callbacks=[tensorboard, checkpoint])
+        # model.fit(X_train, y_train, epochs=10, batch_size=16, shuffle=False, callbacks=[tensorboard, checkpoint])
 
-        # model = load_model('../models/RNN_Final-10-0.010.model')
-        predicted_price = model.predict(X_test)
-        predicted_list = []
-        for i in range(len(predicted_price)):
-            predicted_list.append(predicted_price[i][0])
+        # # model = load_model('../models/RNN_Final-10-0.010.model')
+        # predicted_price = model.predict(X_test)
+        # predicted_list = []
+        # for i in range(len(predicted_price)):
+        #     predicted_list.append(predicted_price[i][0])
 
-        self.y_arr[:, 13] = predicted_list
-        predicted_price = self.scaler.inverse_transform(self.y_arr)
-        print(predicted_price[:, 13])
-        t = np.arange(0.0, len(predicted_price[:, 13]))
+        # self.y_arr[:, 13] = predicted_list
+        # predicted_price = self.scaler.inverse_transform(self.y_arr)
+        # print(predicted_price[:, 13])
+        # t = np.arange(0.0, len(predicted_price[:, 13]))
 
-        post_df = pd.DataFrame(index= self.close_price.index)
-        # plt.plot(t, predicted_price[:, 13], label = 'Predicted +3 Hours')
-        # plt.plot(t, self.close_price,  label = 'Actual +3 Hours')
+        # post_df = pd.DataFrame(index= self.close_price.index)
+        # # plt.plot(t, predicted_price[:, 13], label = 'Predicted +3 Hours')
+        # # plt.plot(t, self.close_price,  label = 'Actual +3 Hours')
+        # # plt.show()
+        # post_df['actual +3 Hour'] =self.close_price.values
+        # post_df['predicted +3 Hour'] = predicted_price[:, 13]
+        # print(post_df)
+        # post_df.to_csv('post.csv')
+        # fig, ax = plt.subplots()
+        # ax.plot(t, predicted_price[:, 13], label = 'Predicted +3 Hours')
+        # ax.plot(t, self.close_price,  label = 'Actual +3 Hours')
+        # ax.set(xlabel='Time in hours', ylabel='Price')
+        # ax.legend()
         # plt.show()
-        post_df['actual +3 Hour'] =self.close_price.values
-        post_df['predicted +3 Hour'] = predicted_price[:, 13]
-        print(post_df)
-        post_df.to_csv('post.csv')
-        fig, ax = plt.subplots()
-        ax.plot(t, predicted_price[:, 13], label = 'Predicted +3 Hours')
-        ax.plot(t, self.close_price,  label = 'Actual +3 Hours')
-        ax.set(xlabel='Time in hours', ylabel='Price')
-        ax.legend()
-        plt.show()
         # real_price = self.close_scaler.inverse_transform(y_test)
 
         # model.add(Activation('linear'))

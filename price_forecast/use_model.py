@@ -42,13 +42,13 @@ class ActualPrediction():
         self.dataset.dropna(inplace=True)
         self.dataset.index = pd.to_datetime(self.dataset.index, format="%d.%m.%Y %H:%M:%S")
 
-
         self.scaler = preprocessing.MinMaxScaler()
         self.post_df = self.preprocess(self.dataset, self.scaler)
 
 
         train_seq = self.build_sequences(self.post_df)
         X_seq, y = self.extract_feature_labels(train_seq)
+        self.y_arr =np.zeros((len(y), len(self.post_df[0])))
         self.use_model(X_seq[-1], y[-1])
 
         # df = pd.read_csv(filename, index_col=0)
@@ -100,9 +100,17 @@ class ActualPrediction():
         return (values-values.shift(1))/values.shift(1) 
 
     def use_model(self, x_seq, y):
+        x = np.expand_dims(x_seq, axis=0)
+        print(x.shape)
         model = load_model('../models/RNN_Final-02-0.003.model')
-        predicted_price = model.predict(x_seq)
+        predicted_price = model.predict(x)
+        predicted_list = []
+        for i in range(len(predicted_price)):
+            predicted_list.append(predicted_price[i][0])
+
+        self.y_arr[:, 13] = predicted_list
+        predicted_price = self.scaler.inverse_transform(self.y_arr)
         print(predicted_price)
         print(y)
-        
+
 x = ActualPrediction()
