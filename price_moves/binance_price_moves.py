@@ -14,13 +14,13 @@ class PriceMoves():
             keys = keys.split(',')
             PriceMoves.API, PriceMoves.API_SECRET = keys[0], keys[1]
         self.client = Client(PriceMoves.API, PriceMoves.API_SECRET)
-        self.pairs = []
-        tickers = self.client.get_orderbook_tickers()
+        # self.pairs = []
+        # tickers = self.client.get_orderbook_tickers()
 
-        for ticker in tickers:
-           self.pairs.append(ticker['symbol'])
+        # for ticker in tickers:
+        #    self.pairs.append(ticker['symbol'])
 
-        self.get_prices()
+        # self.get_prices()
         # self.load_close()
         # self.google_values()
 
@@ -40,6 +40,22 @@ class PriceMoves():
             print('Finished. Saving to csv')
             df.to_csv(f'../dataset_files/price_moves/hour/{pair}.csv')
 
+
+    def get_price(self, coin):
+        column_list = ['date','open','high','low','close','volume']
+        pair = f'{coin}BTC'
+        print(f'Getting price data for {pair}')
+        df = pd.DataFrame()
+        price_data = self.client.get_historical_klines(pair, Client.KLINE_INTERVAL_1MINUTE, "95 day ago GMT")
+        for index, col in enumerate(column_list):
+            if col == 'date':
+                df['date'] = [(int(entry[0])/1000) for entry in price_data]
+                continue
+            df[col] = [entry[index] for entry in price_data]
+            df[col] = df[col].astype('float64')
+        df.set_index('date', inplace=True)
+        print('Finished. Saving to csv')
+        df.to_csv(f'data_files/{coin}/{coin}_prices.csv')
 
     def load_close(self):
         big_diff = 0
@@ -105,5 +121,3 @@ class PriceMoves():
         ax.grid()
 
         plt.show()
-
-x = PriceMoves()
