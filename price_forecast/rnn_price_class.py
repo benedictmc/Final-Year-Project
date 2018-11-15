@@ -21,9 +21,9 @@ class PriceClassification():
     BATCH_SIZE = 128
     NAME = 'MODEL SEQ_LEN{}_PRED_{}'.format(str(60), str(time.time()))
 
-    def __init__(self):
+    def __init__(self, train_file):
         print("Starting price classification script ...")
-        filename = 'data_files\post\BTC.csv'
+        filename = train_file
         if os.path.exists(filename):
             print("Reading in dataset with filename {}".format(filename))
             self.dataset = pd.read_csv(filename, index_col=0)
@@ -33,9 +33,7 @@ class PriceClassification():
             for col in diff_list:
                 if col != 'close':
                     change_df[f'%_{col}'] = self.get_percentage_change(self.dataset[col])
-                    # print(self.get_percentage_change(self.all_data[col]))
-            # print(self.dataset)
-            # print(change_df)
+
             self.dataset = pd.concat([self.dataset, change_df], axis=1, join='inner')
             self.dataset = self.dataset.replace([np.inf, -np.inf], np.nan)
             self.dataset.dropna(inplace=True)
@@ -50,7 +48,7 @@ class PriceClassification():
 
             self.validation_df, self.train_df = self.get_fivepct()
             self.close_price = self.validation_df.iloc[4:].close
- 
+            self.close_price = self.close.shift(-3).values
             self.scaler = preprocessing.MinMaxScaler()
             self.validation_df, self.train_df = self.preprocess(self.validation_df, self.scaler), self.preprocess(self.train_df, self.scaler)
             
@@ -58,16 +56,13 @@ class PriceClassification():
             train_seq = self.build_sequences(self.train_df)
             X_train, y_train = self.extract_feature_labels(train_seq)
 
-
             # Building Validation Data
             validate_seq = self.build_sequences(self.validation_df, val=True)
             X_test, y_test = self.extract_feature_labels(validate_seq)
 
-
             self.df = pd.DataFrame(data=self.validation_df)
 
             self.y_arr =np.zeros((len(y_test), len(self.validation_df[0])))
-            # self.y_arr[:, 13] = y_test
             self.build_model(X_train, y_train, X_test, y_test) 
 
         else:
@@ -117,47 +112,36 @@ class PriceClassification():
 
     def build_model(self, X_train, y_train, X_test, y_test):
         print(f'X_train {X_train.shape[1:]}')
-        # model = Sequential()
+        model = Sequential()
 
-        # model.add(CuDNNLSTM(32, input_shape=(X_train.shape[1:]), return_sequences=True))
-        # model.add(Dropout(0.25))
-        # model.add(CuDNNLSTM(32))
-        # model.add(Dense(1))
-        # opt = tf.keras.optimizers.Adam(lr=0.001, decay=1e-6)
-        # model.compile(loss='mse',optimizer=opt )
+        model.add(CuDNNLSTM(32, input_shape=(X_train.shape[1:]), return_sequences=True))
+        model.add(Dropout(0.25))
+        model.add(CuDNNLSTM(32))
+        model.add(Dense(1))
+        opt = tf.keras.optimizers.Adam(lr=0.001, decay=1e-6)
+        model.compile(loss='mse',optimizer=opt )
 
-        # tensorboard = TensorBoard(log_dir='logs/{}'.format(PriceClassification.NAME))
-        # filepath = "RNN_Final-{epoch:02d}-{loss:.3f}"
-        # checkpoint = ModelCheckpoint("../models/{}.model".format(filepath, monitor='loss', verbose=1, save_best_only=True, mode='max')) 
+        tensorboard = TensorBoard(log_dir='logs/{}'.format(PriceClassification.NAME))
+        filepath = "RNN_Final-{epoch:02d}-{loss:.3f}"
+        checkpoint = ModelCheckpoint("../models/{}.model".format(filepath, monitor='loss', verbose=1, save_best_only=True, mode='max')) 
 
-        # model.fit(X_train, y_train, epochs=10, batch_size=16, shuffle=False, callbacks=[tensorboard, checkpoint])
+        model.fit(X_train, y_train, epochs=50, batch_size=16, shuffle=False, callbacks=[tensorboard, checkpoint])
 
-        # # model = load_model('../models/RNN_Final-10-0.010.model')
-        # predicted_price = model.predict(X_test)
-        # predicted_list = []
-        # for i in range(len(predicted_price)):
-        #     predicted_list.append(predicted_price[i][0])
+        predicted_price = model.predict(X_test)
+        predicted_list = []
+        for i in range(len(predicted_price)):
+            predicted_list.append(predicted_price[i][0])
 
-        # self.y_arr[:, 13] = predicted_list
-        # predicted_price = self.scaler.inverse_transform(self.y_arr)
-        # print(predicted_price[:, 13])
-        # t = np.arange(0.0, len(predicted_price[:, 13]))
+        self.y_arr[:, 13] = predicted_list
+        predicted_price = self.scaler.inverse_transform(self.y_arr)
+        print(predicted_price[:, 13])
+        t = np.arange(0.0, len(predicted_price[:, 13]))
 
-        # post_df = pd.DataFrame(index= self.close_price.index)
-        # # plt.plot(t, predicted_price[:, 13], label = 'Predicted +3 Hours')
-        # # plt.plot(t, self.close_price,  label = 'Actual +3 Hours')
-        # # plt.show()
-        # post_df['actual +3 Hour'] =self.close_price.values
-        # post_df['predicted +3 Hour'] = predicted_price[:, 13]
-        # print(post_df)
-        # post_df.to_csv('post.csv')
-        # fig, ax = plt.subplots()
-        # ax.plot(t, predicted_price[:, 13], label = 'Predicted +3 Hours')
-        # ax.plot(t, self.close_price,  label = 'Actual +3 Hours')
-        # ax.set(xlabel='Time in hours', ylabel='Price')
-        # ax.legend()
-        # plt.show()
-        # real_price = self.close_scaler.inverse_transform(y_test)
+        post_df = pd.DataFrame(index= self.close_price.index)
+        post_df['actual +3 Hour'] =self.close_price.values
+        post_df['predicted +3 Hour'] = predicted_price[:, 13]
+        post_df.to_csv('post.csv')
+
 
         # model.add(Activation('linear'))
 
@@ -196,10 +180,3 @@ class PriceClassification():
         # print('Test accuracy:', score[1])
         # # Save model
         # model.save("../models/{}".format(PriceClassification.NAME))
-
-
-
-
-
-    
-x = PriceClassification()

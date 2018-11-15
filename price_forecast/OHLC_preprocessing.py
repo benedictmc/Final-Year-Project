@@ -14,7 +14,7 @@ from scipy import stats
 import json
 
 class OHLCPreprocess():
-    def __init__(self):
+    def __init__(self, filename, pair, window):
         self.METHOD_CALLS = {
             'moving_averages' : self.moving_averages,
             "rsi": self.rsi,
@@ -24,7 +24,7 @@ class OHLCPreprocess():
             "bollinger_bands" : self.bollinger_bands,
         }
         ##Initialse dataframe from master BTC datafile. Datafile is in minute time periods
-        read_filename = 'data_files/hour/master_dataset_BTC.csv'
+        read_filename = filename
         print('Running OHLC preprocessing ...')
         self.data = pd.read_csv(read_filename, index_col=0)
 
@@ -34,7 +34,8 @@ class OHLCPreprocess():
         self.index =  self.data.index
         self.all_data = self.combine_indicators() 
         self.all_data.dropna(inplace=True)
-        self.all_data.to_csv('data_files/post/BTC.csv')
+        self.save_filename =f'data_files/training/{pair}_{window}.csv'
+        self.all_data.to_csv(self.save_filename)
 
 
     def combine_indicators(self):
@@ -275,24 +276,6 @@ class OHLCPreprocess():
     def get_percentage_change(self, values):
         return (values-values.shift(1))/values.shift(1) 
    
-    ##TODO need to fix so current index is not being cut off
-    def acc_dist(self, period):
-        AD = []
-        high, low, close, volume = self.data.high, self.data.low, self.data.close, self.data.Volume
-        for i in range(period, len(self.data.index)-period):
-            C = close.iloc[i+1]
-            H = np.array([high.iloc[i-period: period+i]]).max()
-            L = np.array([low.iloc[i-period: period+i]]).min()
-            V = volume.iloc[i+1]
-            if H==L:
-                CLV = 0
-            else: 
-                CLV = (((C-L)-(H-C))/(H-L))
-            AD = np.append(AD, CLV*V)
-        AD = AD.cumsum()
-        AD = pd.DataFrame(AD, index=self.data.iloc[period+1:-period+1].index)
-        return AD
-
     def macd(self):
         df = pd.DataFrame(index=self.index)
         close = self.data.close
@@ -335,22 +318,8 @@ class OHLCPreprocess():
         ms_df = pd.DataFrame(ms, index= self.data.iloc[period:-period].index)
         return ms_df
 
-    def build_classification(self, coin):
-        print("Getting target classification information")
-        self.all_data['future'] = self.all_data.close.shift(-3)
-        self.all_data['target'] = list(map(self.get_class, self.all_data.close,  self.all_data['future']))
-        self.all_data = self.all_data.drop('future', 1)
-
-    def get_class(self, current, future):
-        if float(current)< float(future) :
-            return 1
-        else:
-            return 0
 
     def preprocess(self, df):
         minmax_scale = preprocessing.MinMaxScaler().fit(df)
         df_minmax = minmax_scale.transform(df)
         return df_minmax
-
-
-x = OHLCPreprocess()

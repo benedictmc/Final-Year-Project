@@ -6,17 +6,29 @@ import numpy as np
 from tensorflow.keras.models import load_model
 from collections import deque
 import random 
-import time
 import real_time_OHLC
+import sched, time
 
 class ActualPrediction():
 
     def __init__(self):
         print("Starting price classification script ...")
-        filename = 'post.csv'
+        filename = 'data_files/post/post.csv'
         print('Starting use_model script...')
         print('Calling real_timeOHLC script...')
+        self.bal, self.bought, self.sold = 6300, False, True
 
+        s = sched.scheduler(time.time, time.sleep)
+
+        def start(sc): 
+            self.start_program()
+            s.enter(60, 1, start, (sc,))
+
+        s.enter(2, 1, start, (s,))
+        s.run()
+
+
+    def start_program(self):
         real_time = real_time_OHLC.OHLCRealTime()
         self.dataset = real_time.all_data
         print('Done calling scripts.... ')
@@ -36,24 +48,20 @@ class ActualPrediction():
         cols.pop(cols.index('close')) 
 
         self.dataset = self.dataset[cols+['close']]
-        target = self.dataset.close.shift(-3)
-        
         
         self.dataset.dropna(inplace=True)
         self.dataset.index = pd.to_datetime(self.dataset.index, format="%d.%m.%Y %H:%M:%S")
-
+        self.close = self.dataset.close[4:]
         self.scaler = preprocessing.MinMaxScaler()
         self.post_df = self.preprocess(self.dataset, self.scaler)
 
-
         train_seq = self.build_sequences(self.post_df)
         X_seq, y = self.extract_feature_labels(train_seq)
+        print(X_seq)
+        self.close = self.close.shift(-3).values
+        
         self.y_arr =np.zeros((len(y), len(self.post_df[0])))
-        self.use_model(X_seq[-1], y[-1])
-
-        # df = pd.read_csv(filename, index_col=0)
-        # df = self.buy_sell(df)
-        # self.run_profit_loss(df)
+        self.use_model(X_seq, y)
 
     def preprocess(self, df, scaler):
         # s = preprocessing.MinMaxScaler().fit(df.values)
@@ -66,13 +74,13 @@ class ActualPrediction():
         return df
         
     def run_profit_loss(self, df):
-        bal, bought, sold = 500, False, True
+        bal, bought, sold = 6300, False, True
         for row in df.iterrows():
             if row[1].buy_sell == 1 and sold:
                 bal = bal / row[1].versus
                 bought, sold = True, False
                 print(f'BUYING: {bal} ')
-            if row[1].buy_sell == 0 and bought:
+            if row[1].buy_sell == 0  and bought:
                 bal = bal * row[1].versus
                 bought, sold = False, True
                 print(f'SELLING: {bal} ')
@@ -100,17 +108,39 @@ class ActualPrediction():
         return (values-values.shift(1))/values.shift(1) 
 
     def use_model(self, x_seq, y):
-        x = np.expand_dims(x_seq, axis=0)
-        print(x.shape)
+        # x = np.expand_dims(x_seq, axis=0)
         model = load_model('../models/RNN_Final-02-0.003.model')
-        predicted_price = model.predict(x)
+        predicted_price = model.predict(x_seq)
         predicted_list = []
         for i in range(len(predicted_price)):
             predicted_list.append(predicted_price[i][0])
 
         self.y_arr[:, 13] = predicted_list
+        predicted_list = self.y_arr[:, 13]
         predicted_price = self.scaler.inverse_transform(self.y_arr)
-        print(predicted_price)
-        print(y)
+    
+        # print(len(predicted_price))
+        # print(len(self.close))
+        for i, y in zip(predicted_price, self.close):
+            print(f'Predicted: { i[-1] }, Actual: {y}')
+        print("Running trading simulator....")
+
+        self.simulate_trade(predicted_price[-1][-1], self.close[-4])
+        
+    def simulate_trade(self, pre, current):
+        print(f'Predicted: {pre}, Actual: {current}')
+        if pre > current and self.sold:
+            self.bal = self.bal / current
+            self.bought, self.sold = True, False
+            self.b_val = current
+            print(f'BUYING: {self.bal} ')
+        if pre > current and self.bought:
+            print(f'BTC current state is {current - self.b_val} USTD')
+        if pre < current  and self.bought:
+            self.bal = self.bal * current
+            self.bought, self.sold = False, True
+            print(f'SELLING: {self.bal} ')
+
 
 x = ActualPrediction()
+

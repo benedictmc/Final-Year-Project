@@ -85,7 +85,6 @@ class BinanceDS():
         column_list = ['date','Open','High','Low','Close','Volume']
         for coin_pair in BinanceDS.PAIR_LIST:
             update = False
-            df = pd.DataFrame()
             coin = coin_pair[:3]
             print('Updating {} dataset...'.format(coin))
             filelist = os.listdir('dataset_files/master/hour')
