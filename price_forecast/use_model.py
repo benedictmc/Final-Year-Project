@@ -11,26 +11,24 @@ import sched, time
 
 class ActualPrediction():
 
-    def __init__(self):
+    def __init__(self, df):
         print("Starting price classification script ...")
         filename = 'data_files/post/post.csv'
         print('Starting use_model script...')
-        print('Calling real_timeOHLC script...')
         self.bal, self.bought, self.sold = 6300, False, True
 
         s = sched.scheduler(time.time, time.sleep)
 
         def start(sc): 
-            self.start_program()
+            self.start_program(df)
             s.enter(60, 1, start, (sc,))
 
         s.enter(2, 1, start, (s,))
         s.run()
 
 
-    def start_program(self):
-        real_time = real_time_OHLC.OHLCRealTime()
-        self.dataset = real_time.all_data
+    def start_program(self, df):
+        self.dataset = df
         print('Done calling scripts.... ')
 
         diff_list = ['ma_5','ma_6','ma_10','%b_bands','midlle_bands','rsi_6','rsi_12','williams_12','9_kstochastic','9_dstochastic','macd_hist']
@@ -57,14 +55,12 @@ class ActualPrediction():
 
         train_seq = self.build_sequences(self.post_df)
         X_seq, y = self.extract_feature_labels(train_seq)
-        print(X_seq)
         self.close = self.close.shift(-3).values
         
         self.y_arr =np.zeros((len(y), len(self.post_df[0])))
         self.use_model(X_seq, y)
 
     def preprocess(self, df, scaler):
-        # s = preprocessing.MinMaxScaler().fit(df.values)
         df_minmax = scaler.fit_transform(df.values)
         return df_minmax
 
@@ -108,8 +104,7 @@ class ActualPrediction():
         return (values-values.shift(1))/values.shift(1) 
 
     def use_model(self, x_seq, y):
-        # x = np.expand_dims(x_seq, axis=0)
-        model = load_model('../models/RNN_Final-02-0.003.model')
+        model = load_model('../models/RNN_Final-06-0.003.model')
         predicted_price = model.predict(x_seq)
         predicted_list = []
         for i in range(len(predicted_price)):
@@ -119,8 +114,7 @@ class ActualPrediction():
         predicted_list = self.y_arr[:, 13]
         predicted_price = self.scaler.inverse_transform(self.y_arr)
     
-        # print(len(predicted_price))
-        # print(len(self.close))
+        print(f'Length of predicted entry was {len(predicted_price)}, and length of close data was {len(self.close)}')
         for i, y in zip(predicted_price, self.close):
             print(f'Predicted: { i[-1] }, Actual: {y}')
         print("Running trading simulator....")
@@ -140,7 +134,4 @@ class ActualPrediction():
             self.bal = self.bal * current
             self.bought, self.sold = False, True
             print(f'SELLING: {self.bal} ')
-
-
-x = ActualPrediction()
 

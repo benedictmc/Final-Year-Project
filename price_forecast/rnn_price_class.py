@@ -48,7 +48,7 @@ class PriceClassification():
 
             self.validation_df, self.train_df = self.get_fivepct()
             self.close_price = self.validation_df.iloc[4:].close
-            self.close_price = self.close.shift(-3).values
+            self.close_price = self.dataset.close
             self.scaler = preprocessing.MinMaxScaler()
             self.validation_df, self.train_df = self.preprocess(self.validation_df, self.scaler), self.preprocess(self.train_df, self.scaler)
             

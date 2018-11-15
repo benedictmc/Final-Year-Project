@@ -12,11 +12,11 @@ import math
 import talib
 from scipy import stats
 import json
-import binance_dataset_update
+import binance_dataset_update as Binance
 
 
 class OHLCRealTime():
-    def __init__(self):
+    def __init__(self, pair, window):
         self.METHOD_CALLS = {
             'moving_averages' : self.moving_averages,
             "rsi": self.rsi,
@@ -28,8 +28,8 @@ class OHLCRealTime():
         ##Initialse dataframe from master BTC datafile. Datafile is in minute time periods
         print('Starting OHLCRealTime script...')
         print('Calling Binance script...')
-        binance_script = binance_dataset_update.BinanceDS()
-        self.data = binance_script.get_real_time_data('BTCUSDT', 'hour')
+        x = Binance.BinanceDS('real', window, pair)
+        self.data = x.real_data
 
         ##Reduces row size to 200 for time sake        
         self.data.index = [datetime.fromtimestamp(int(x)).strftime('%d.%m.%Y %H:%M:%S') for x in self.data.index]
@@ -37,7 +37,6 @@ class OHLCRealTime():
         self.index =  self.data.index
         self.all_data = self.combine_indicators() 
         self.all_data.dropna(inplace=True)
-        # self.all_data.to_csv('data_files/post/BTC.csv')
 
 
     def combine_indicators(self):

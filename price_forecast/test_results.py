@@ -5,18 +5,23 @@ from collections import deque
 
 class TestResults():
     def __init__(self):
-        filename = 'data_files/training/BTC_minute.csv'
-        self.dataset = pd.read_csv(filename, index_col=0)
-        self.start_method()
+        # filename = 'data_files/training/BTC_minute.csv'
+        # self.dataset = pd.read_csv(filename, index_col=0)
+        # self.start_method()
 
-        self.validation_df, _ = self.get_fivepct()
-        # self.close_price = self.validation_df.iloc[4:].close
-        # self.close_price = self.close.shift(-3).values
-        print(self.validation_df.columns)
-        validate_seq = self.build_sequences(self.validation_df)
-        X_test, y_test = self.extract_feature_labels(validate_seq)
+        # self.validation_df, _ = self.get_fivepct()
+        # # self.close_price = self.validation_df.iloc[4:].close
+        # # self.close_price = self.close.shift(-3).values
+        # print(self.validation_df.columns)
+        # validate_seq = self.build_sequences(self.validation_df)
+        # X_test, y_test = self.extract_feature_labels(validate_seq)
 
         # self.y_arr =np.zeros((len(y_test), len(self.validation_df[0])))
+        filename = 'post.csv'
+        df = pd.read_csv(filename, index_col=0)
+        df = self.buy_sell(df)
+        self.run_profit_loss(df)
+
 
     def get_fivepct(self):
         self.dataset =self.dataset.sort_index()
@@ -70,5 +75,27 @@ class TestResults():
         for seq, target in seq_data:
             X.append(seq)
             y.append(target)
-        return np.array(X), y
+        return np.array(X), y#
+
+
+
+    def buy_sell(self, df):
+        df['versus'] = df.actual.shift(3)
+        df['buy_sell'] = [1 if row[1].predicted >= row[1].versus else 0 for row in df.iterrows()]
+        return df
+        
+    def run_profit_loss(self, df):
+        bal, bought, sold = 6300, False, True
+        for row in df.iterrows():
+            if row[1].buy_sell == 1 and sold:
+                bal = bal / row[1].versus
+                bought, sold = True, False
+                print(f'BUYING: {bal} ')
+            if row[1].buy_sell == 0  and bought:
+                bal = bal * row[1].versus
+                bought, sold = False, True
+                print(f'SELLING: {bal} ')
+        print(f'Final Balance is {bal}')
+
+
 x = TestResults()

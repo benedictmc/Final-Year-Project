@@ -34,7 +34,7 @@ class BinanceDS():
             if time == 'day':
                 self.update_datasets(time, pair)
         elif function == 'real':
-            self.get_real_time_data(pair, time)
+            self.real_data = self.get_real_time_data(pair, time)
 
     def update_datasets(self, time, coin_pair):
         print('Starting to update master datasets...')
@@ -70,7 +70,6 @@ class BinanceDS():
     def get_real_time_data(self, coin_pair, time):
             df = pd.DataFrame()
             coin = coin_pair[:3]
-            filelist = os.listdir(f'data_files/{time}/')
             print("Getting pricing information for {}".format(coin))
             print(f"Time selected is {time}".format(coin))
             column_list = ['date','open','high','low','close','volume']
