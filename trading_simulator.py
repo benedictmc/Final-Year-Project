@@ -27,8 +27,7 @@ class TradingSimulator():
         df = pd.read_csv(ds_filepath, index_col=0)
         self.dataset = df.tail(300)
         post_process = Trading.OHLCPreprocess(self.dataset)
-
-
+        print('cHANGE')
         self.market_data = post_process.post_process_df
         sequential_data, index_list = self.build_sequences(self.market_data)
         self.X, self.y = self.extract_feature_labels(sequential_data)

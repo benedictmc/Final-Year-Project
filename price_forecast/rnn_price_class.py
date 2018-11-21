@@ -6,7 +6,6 @@ import numpy as np
 from collections import deque
 import random 
 import time
-import tensorflow as tf 
 from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Dense, Dropout, LSTM, CuDNNLSTM, BatchNormalization, Embedding, Activation, GRU
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
