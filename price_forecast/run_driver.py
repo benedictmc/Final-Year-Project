@@ -7,7 +7,7 @@ import use_model as run_model
 
 class AppDriver():
     def __init__(self):
-        mode, window, pair = 'real_time',  'minute', 'BTCUSDT'
+        mode, window, pair = 'real',  'minute', 'BCHSVBTC'
         coin = pair[:3]
         if mode  == 'train':
             print(f'Starting App Driver for training on {coin} {window} data')
@@ -16,8 +16,8 @@ class AppDriver():
             print('Starting OHLCPreprocess')
             x = make_features.OHLCPreprocess(filename, coin, window)
             print('Starting PriceClassification')
-            price_class.PriceClassification(x.save_filename)
-        elif mode == 'real_time':
+            price_class.PriceClassification(x.save_filename, 10, coin)
+        elif mode == 'real':
             print(f'Starting App Driver for real time mode on {coin} {window} data')
             real_time = rt_make_features.OHLCRealTime(pair, window)
             print(f'Starting the use model file....')

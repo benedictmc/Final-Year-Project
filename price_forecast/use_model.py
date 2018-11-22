@@ -16,7 +16,7 @@ class ActualPrediction():
         filename = 'data_files/post/post.csv'
         print('Starting use_model script...')
         self.bal, self.bought, self.sold = 6300, False, True
-
+        self.model = '../models/BCH/BCH_Model-08-0.038.model'
         s = sched.scheduler(time.time, time.sleep)
 
         def start(sc): 
@@ -104,7 +104,7 @@ class ActualPrediction():
         return (values-values.shift(1))/values.shift(1) 
 
     def use_model(self, x_seq, y):
-        model = load_model('../models/RNN_Final-06-0.003.model')
+        model = load_model(self.model)
         predicted_price = model.predict(x_seq)
         predicted_list = []
         for i in range(len(predicted_price)):

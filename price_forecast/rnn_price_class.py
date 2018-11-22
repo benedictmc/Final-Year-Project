@@ -21,9 +21,10 @@ class PriceClassification():
     BATCH_SIZE = 128
     NAME = 'MODEL SEQ_LEN{}_PRED_{}'.format(str(60), str(time.time()))
 
-    def __init__(self, train_file):
+    def __init__(self, train_file, epochs, coin):
         print("Starting price classification script ...")
         filename = train_file
+        self.coin, self.epochs = coin, epochs
         if os.path.exists(filename):
             print("Reading in dataset with filename {}".format(filename))
             self.dataset = pd.read_csv(filename, index_col=0)
@@ -69,7 +70,6 @@ class PriceClassification():
             print("Dataset {} not found. Program exiting".format(filename))
 
     def preprocess(self, df, scaler):
-        # s = preprocessing.MinMaxScaler().fit(df.values)
         df_minmax = scaler.fit_transform(df.values)
         return df_minmax
 
@@ -78,7 +78,7 @@ class PriceClassification():
 
     def get_fivepct(self):
         self.dataset =self.dataset.sort_index()
-        # self.dataset = self.dataset[::-1]
+        print(self.dataset.index)
         last_5pct = int(len(self.dataset.index)*(0.05))
         index =self.dataset.iloc[-last_5pct].name 
         train_df = self.dataset.truncate(after=index)
@@ -111,7 +111,6 @@ class PriceClassification():
 
 
     def build_model(self, X_train, y_train, X_test, y_test):
-        print(f'X_train {X_train.shape[1:]}')
         model = Sequential()
 
         model.add(CuDNNLSTM(32, input_shape=(X_train.shape[1:]), return_sequences=True))
@@ -122,10 +121,10 @@ class PriceClassification():
         model.compile(loss='mse',optimizer=opt )
 
         tensorboard = TensorBoard(log_dir='logs/{}'.format(PriceClassification.NAME))
-        filepath = "RNN_Final-{epoch:02d}-{loss:.3f}"
-        checkpoint = ModelCheckpoint("../models/{}.model".format(filepath, monitor='loss', verbose=1, save_best_only=True, mode='max')) 
-
-        model.fit(X_train, y_train, epochs=50, batch_size=16, shuffle=False, callbacks=[tensorboard, checkpoint])
+        filepath = self.coin+"_Model-{epoch:02d}-{loss:.3f}"
+        checkpoint = ModelCheckpoint("../models/BCH/{}.model".format(filepath, monitor='loss', verbose=1, save_best_only=True, mode='max')) 
+        num = self.epochs
+        model.fit(X_train, y_train, epochs= 10, batch_size=16, shuffle=False, callbacks=[tensorboard, checkpoint])
 
         predicted_price = model.predict(X_test)
         predicted_list = []
@@ -138,9 +137,9 @@ class PriceClassification():
         t = np.arange(0.0, len(predicted_price[:, 13]))
 
         post_df = pd.DataFrame(index= self.close_price.index)
-        post_df['actual +3 Hour'] =self.close_price.values
-        post_df['predicted +3 Hour'] = predicted_price[:, 13]
-        post_df.to_csv('post.csv')
+        post_df['actual'] =self.close_price.values
+        post_df['predicted'] = predicted_price[:, 13]
+        post_df.to_csv('data_files/{self.coin}/post.csv')
 
 
         # model.add(Activation('linear'))
