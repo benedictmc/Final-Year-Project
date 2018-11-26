@@ -7,8 +7,15 @@ import use_model as run_model
 
 class AppDriver():
     def __init__(self):
-        mode, window, pair = 'real',  'minute', 'BCHSVBTC'
+        mode, window, pair = 'japan',  'sec0nd', 'USDTBTC'
         coin = pair[:3]
+        if mode == 'japan':
+            print('Running train on Japan data..')
+            filename = 'data_files/training/japan_btc_post.csv' 
+            x = make_features.OHLCPreprocess(filename, coin, window)
+            print('Starting PriceClassification')
+            price_class.PriceClassification(x.save_filename, 10, coin)
+
         if mode  == 'train':
             print(f'Starting App Driver for training on {coin} {window} data')
             binance.BinanceDS('update', window, pair)

@@ -43,28 +43,32 @@ class PriceClassification():
             cols = list(self.dataset.columns.values) 
             cols.pop(cols.index('close')) 
             self.dataset = self.dataset[cols+['close']]
+            ## This is for training so compare against future values
             self.dataset.close = self.dataset.close.shift(-3)
             self.dataset.dropna(inplace=True)
-            self.dataset.index = pd.to_datetime(self.dataset.index, format="%d.%m.%Y %H:%M:%S")
+            # self.dataset.index = pd.to_datetime(self.dataset.index, format="%d.%m.%Y %H:%M:%S")
 
             self.validation_df, self.train_df = self.get_fivepct()
+
             self.close_price = self.validation_df.iloc[4:].close
-            self.close_price = self.dataset.close
             self.scaler = preprocessing.MinMaxScaler()
+            save_index_val = self.validation_df.index
+            save_index_tr = self.train_df.index
             self.validation_df, self.train_df = self.preprocess(self.validation_df, self.scaler), self.preprocess(self.train_df, self.scaler)
-            
             # # Building Training Data
-            train_seq = self.build_sequences(self.train_df)
+            train_seq, date_train = self.build_sequences(self.train_df, save_index_tr)
             X_train, y_train = self.extract_feature_labels(train_seq)
 
             # Building Validation Data
-            validate_seq = self.build_sequences(self.validation_df, val=True)
+            validate_seq, date_val = self.build_sequences(self.validation_df, save_index_val, val=True)
             X_test, y_test = self.extract_feature_labels(validate_seq)
+
 
             self.df = pd.DataFrame(data=self.validation_df)
 
             self.y_arr =np.zeros((len(y_test), len(self.validation_df[0])))
-            self.build_model(X_train, y_train, X_test, y_test) 
+            predicted_vals = self.build_model(X_train, y_train, X_test, y_test, date_val) 
+            self.create_post_df(predicted_vals, self.close_price, date_val)
 
         else:
             print("Dataset {} not found. Program exiting".format(filename))
@@ -78,23 +82,24 @@ class PriceClassification():
 
     def get_fivepct(self):
         self.dataset =self.dataset.sort_index()
-        print(self.dataset.index)
         last_5pct = int(len(self.dataset.index)*(0.05))
         index =self.dataset.iloc[-last_5pct].name 
         train_df = self.dataset.truncate(after=index)
         validation_df= self.dataset.truncate(before=index)
         return validation_df, train_df
 
-    def build_sequences(self, df, val= False):
-        sequential_data = []
+    def build_sequences(self, df, save_index, val = False):
+        sequential_data, dates = [], []
         prev_days = deque(maxlen = PriceClassification.SEQ_LENGTH)
-        for i in df:
+        for i, date in zip(df, save_index):
             prev_days.append([n for n in i[:-1]])
             if len(prev_days) == PriceClassification.SEQ_LENGTH:
+                dates.append(date)
                 sequential_data.append([np.array(prev_days), i[-1]])
-        if val:
+        if not val:
+            print(f'Random Shuffle length of dates is {len(dates)}')
             random.shuffle(sequential_data)
-        return sequential_data
+        return sequential_data, dates
 
 
     def extract_feature_labels(self, seq_data):
@@ -110,7 +115,7 @@ class PriceClassification():
         print("VALIDATE: Amount of Sells: {}, Amount of Buys: {}, Amount of holds: na".format(y_val.count(0), y_val.count(1)))
 
 
-    def build_model(self, X_train, y_train, X_test, y_test):
+    def build_model(self, X_train, y_train, X_test, y_test, date_val):
         model = Sequential()
 
         model.add(CuDNNLSTM(32, input_shape=(X_train.shape[1:]), return_sequences=True))
@@ -123,7 +128,6 @@ class PriceClassification():
         tensorboard = TensorBoard(log_dir='logs/{}'.format(PriceClassification.NAME))
         filepath = self.coin+"_Model-{epoch:02d}-{loss:.3f}"
         checkpoint = ModelCheckpoint("../models/BCH/{}.model".format(filepath, monitor='loss', verbose=1, save_best_only=True, mode='max')) 
-        num = self.epochs
         model.fit(X_train, y_train, epochs= 10, batch_size=16, shuffle=False, callbacks=[tensorboard, checkpoint])
 
         predicted_price = model.predict(X_test)
@@ -133,13 +137,18 @@ class PriceClassification():
 
         self.y_arr[:, 13] = predicted_list
         predicted_price = self.scaler.inverse_transform(self.y_arr)
-        print(predicted_price[:, 13])
-        t = np.arange(0.0, len(predicted_price[:, 13]))
+        print('Finished predicted price returning predicted values of validation df')
+        return predicted_price[:, 13]
 
-        post_df = pd.DataFrame(index= self.close_price.index)
-        post_df['actual'] =self.close_price.values
-        post_df['predicted'] = predicted_price[:, 13]
-        post_df.to_csv('data_files/{self.coin}/post.csv')
+
+    def create_post_df(self, predicted, close, index):
+        print(f'Length of pridected prices is {len(predicted)}')
+        print(f'Length of pridected dates is {len(index)}')
+        post_df = pd.DataFrame(index= index)
+        post_df['actual'] = close
+        post_df['predicted'] = predicted
+        post_df.to_csv('data_files/post/japan.csv')
+    
 
 
         # model.add(Activation('linear'))
