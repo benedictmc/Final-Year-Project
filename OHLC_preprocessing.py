@@ -381,9 +381,11 @@ class OHLCPreprocess():
             return 0
 
     def preprocess(self, df):
-        minmax_scale = preprocessing.MinMaxScaler().fit(df)
-        df_minmax = minmax_scale.transform(df)
-        return df_minmax
+        x = df.values #returns a numpy array
+        min_max_scaler = preprocessing.MinMaxScaler()
+        x_scaled = min_max_scaler.fit_transform(x)
+        df = pandas.DataFrame(x_scaled)
+        return df
 
 
 x = OHLCPreprocess()

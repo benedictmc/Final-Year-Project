@@ -31,17 +31,15 @@ class JapanBTC():
             if row[1].buy_sell == 1 and sold:
                 if row[1].actual == 0:
                     continue
-                bal = bal / row[1].actual
+                bal = bal * row[1].actual
                 bought, sold = True, False
-                print(row[1].actual)
-                print(f'BUYING: {bal} ')
+                print(f'BUYING: {bal} at price {row[1].actual}')
             if row[1].buy_sell == 0  and bought:
                 if row[1].actual == 0:
                     continue
-                bal = bal * row[1].actual
+                bal = bal / row[1].actual
                 bought, sold = False, True
-                print(row[1].actual)
-                print(f'SELLING: {bal} ')
+                print(f'SELLING: {bal} at price {row[1].actual}')
         print(f'Final Balance is {bal}')
 
 x = JapanBTC()

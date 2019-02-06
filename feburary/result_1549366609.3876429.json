@@ -1,0 +1,1 @@
+{"1549366609.386643": {"Predicting Coin": "BTC", "sequence_length": 16, "batch size": 32, "epochs": 10, "results": {"loss": 0.6929411702828252, "accuracy": 0.5357585779247623}}}

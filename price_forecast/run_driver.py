@@ -7,7 +7,7 @@ import use_model as run_model
 
 class AppDriver():
     def __init__(self):
-        mode, window, pair = 'japan',  'sec0nd', 'USDTBTC'
+        mode, window, pair = 'train',  'hour', 'OAXBTC'
         coin = pair[:3]
         if mode == 'japan':
             print('Running train on Japan data..')
