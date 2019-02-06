@@ -4,3 +4,4 @@ models/
 logs/
 dataset_files/
 node_app/
+node_modules/

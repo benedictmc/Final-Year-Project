@@ -1,0 +1,73 @@
+<!-- <nav>
+  <ul>
+    <li>Home</li>
+  </ul>
+</nav>
+ -->
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div class ="title">
+    <h2>Welcome to the analytic dashboard</h2>
+    <ul>
+        <li *ngFor="let coin of coins;">
+           Coin available to predict: <b>{{coin}}</b>
+        </li>
+     </ul>
+  </div>
+  <br>
+    <div class = "main">
+      <table class="table table-boardered-hover">
+          <thead>
+            <tr >
+              <th scope="col">#</th>
+              <th *ngFor="let feature of features;" scope="col">{{feature}}</th>
+              <th scope="col">Signal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">BTCUSD</th>
+              <td>3012</td>
+              <td>123</td>
+              <td>3780</td>
+              <td>3691</td>
+              <td>Buy</td>
+            </tr>
+            <tr>
+              
+              <th scope="row">ETHUSD</th>
+              <td>100</td>
+              <td>471</td>
+              <td>120</td>
+              <td>111</td>
+              <td>Sell</td>
+            </tr>
+            <tr>
+              <th scope="row">XRPUSD</th>
+              <td>12</td>
+              <td>163</td>
+              <td>80</td>
+              <td>11</td>
+              <td>Sell</td>
+            </tr>
+          </tbody>
+      </table>
+<br>
+<br>
+<br>
+
+<h5>Profit/Loss 1Hour:      XX$ <br></h5>
+<h5>Profit/Loss 1Day:      XX$ <br></h5>
+<h5>Profit/Loss Alltime:      XX$</h5>
+<br><br>
+</div>
+
+</body>
+<footer>
+  <b>Author:  </b> <i>Benedict McGovern, 2019</i>
+</footer>
