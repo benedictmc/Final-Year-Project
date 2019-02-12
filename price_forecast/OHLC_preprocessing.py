@@ -29,7 +29,7 @@ class OHLCPreprocess():
         self.data = pd.read_csv(read_filename, index_col=0)
 
         ##Reduces row size to 200 for time sake        
-        self.data.index = [datetime.fromtimestamp(int(x)).strftime('%d.%m.%Y %H:%M:%S') for x in self.data.index]
+        # self.data.index = [datetime.fromtimestamp(int(x)).strftime('%d.%m.%Y %H:%M:%S') for x in self.data.index]
         ##Creates an index variable as this will be used often
         self.index =  self.data.index
         self.all_data = self.combine_indicators() 

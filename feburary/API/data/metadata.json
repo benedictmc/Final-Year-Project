@@ -1,0 +1,1 @@
+{"coins": ["BTC", "ETH", "XRP", "BNB"], "features": ["close_BTC", "volume_BTC", "close_ETH", "volume_ETH", "close_BNB", "volume_BNB", "close_XRP", "volume_XRP", "close", "volume", "ma_5", "ma_6", "ma_10", "ma_20", "rsi_6", "rsi_12", "stochastic_5", "9_kstochastic", "9_dstochastic", "macd_hist", "williams_12", "%b_bands", "midlle_bands"]}
