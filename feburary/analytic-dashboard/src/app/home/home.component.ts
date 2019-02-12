@@ -15,11 +15,14 @@ export class HomeComponent implements OnInit {
   features = []
   featureData = []
   TAdata: TAdata
+  TAmap = new Map<string, number>(); 
+
   constructor(public http: HttpClient) { }
 
   ngOnInit() {
     this.getCoins().subscribe(data =>{
       this.coins = data
+      console.log(this.coins)
     })
 
     this.getFeatures().subscribe(data =>{
@@ -28,11 +31,18 @@ export class HomeComponent implements OnInit {
 
     this.getFeatureData().subscribe(data =>{
       this.featureData = data
+      console.log(this.featureData)
       this.TAdata = <TAdata>this.featureData.indicators
-      type TAdsata = typeof TAdata;
-      const headers: Array<Object> = Object.keys(TAdata).map(key => {
-          return { text: key, value: key }
-      });    })
+      this.mapTAData(this.TAdata)
+      })
+      
+  }
+
+  mapTAData(taData){
+    this.features.forEach(element => {
+      this.TAmap.set(element,taData[element])
+    });
+    console.log(this.TAmap)
   }
 
   getCoins (): Observable<any[]> {

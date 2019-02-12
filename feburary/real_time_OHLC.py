@@ -28,7 +28,7 @@ class OHLCRealTime():
         ##Initialse dataframe from master BTC datafile. Datafile is in minute time periods
         print('Starting OHLCRealTime script...')
         print('Calling Binance script...')
-        filename = 'data_files/minute/master_dataset_BTC.csv'
+        filename = 'data_files/minute/master_dataset_WAV.csv'
         print(coin)
         if realtime:
             filename = f'data_files/real_time/{coin}.csv'

@@ -22,40 +22,20 @@
   <br>
     <div class = "main">
       <table class="table table-boardered-hover">
-          <thead>
-            <tr >
-              <th scope="col">#</th>
-              <th *ngFor="let feature of features;" scope="col">{{feature}}</th>
-              <th scope="col">Signal</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">BTCUSD</th>
-              <td>3012</td>
-              <td>123</td>
-              <td>3780</td>
-              <td>3691</td>
-              <td>Buy</td>
-            </tr>
-            <tr>
-              
-              <th scope="row">ETHUSD</th>
-              <td>100</td>
-              <td>471</td>
-              <td>120</td>
-              <td>111</td>
-              <td>Sell</td>
-            </tr>
-            <tr>
-              <th scope="row">XRPUSD</th>
-              <td>12</td>
-              <td>163</td>
-              <td>80</td>
-              <td>11</td>
-              <td>Sell</td>
-            </tr>
-          </tbody>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Signal</th>
+            <th *ngFor="let recipient of TAmap | keyvalue" scope="col">{{recipient.key}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">BTCUSD</th>
+            <td>Buy</td>
+            <td *ngFor="let recipient of TAmap | keyvalue" scope="col">{{recipient.value}}</td>
+          </tr>
+        </tbody>
       </table>
 <br>
 <br>
@@ -66,7 +46,6 @@
 <h5>Profit/Loss Alltime:      XX$</h5>
 <br><br>
 </div>
-
 </body>
 <footer>
   <b>Author:  </b> <i>Benedict McGovern, 2019</i>

@@ -68,7 +68,7 @@ def preprocess(df):
 
 
 def use_model(x_seq, filename = ''):
-    filepath = 'models/MODEL SEQ_LEN60_PRED_1549365876.2177374'
+    filepath = 'models/MODEL SEQ_LEN60_PRED_1549625425.4227955'
     model = load_model(filepath)
     predicted_price = model.predict_classes(x_seq)
     return predicted_price
@@ -76,17 +76,24 @@ def use_model(x_seq, filename = ''):
 
 def run_profit_loss(predicted_price, close_vals, time):
     bal, bought, sold = 6300, False, True
+    results_l = []
+    bought_id, bought_price, fee = None, 1, None
     for i in range(0, len(predicted_price)):
         if predicted_price[i] == 1 and sold:
             bal = bal / close_vals[i]
             bought, sold = True, False
+            bought_id  = time[i]
+            bought_price =  close_vals[i] 
+            fee = (bal * 0.00075)*close_vals[i]
             print(f'BUYING: {close_vals[i]} at time {time[i]}')
         if predicted_price[i] == 0  and bought:
             bal = bal * close_vals[i]
             bought, sold = False, True
+            results_l.append({'time' : bought_id, 'bought' : bought_price , 'sold': close_vals[i], 'fee' : fee + close_vals[i] * 0.00075, 'profit': close_vals[i]- bought_price  })
             print(f'SELLING: {close_vals[i]} at time {time[i]}')
     if bought:
         bal = bal * close_vals[-1]
+    print(results_l)
     print(f'Final Balance is {bal} at time {time[-1]}')
 
 

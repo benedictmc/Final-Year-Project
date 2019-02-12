@@ -12,11 +12,13 @@ from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 import time
 from tensorflow.keras.models import load_model
 import json
+import real_time_OHLC as OHLC_data
 
-pair_list = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT']
-coins = ['BTC', "ETH", 'BNB', 'XRP']
+pair_list, coins = ['WAVESBTC', 'ETHBTC', 'BNBBTC', 'XRPBTC'] , ['WAV', "ETH", 'BNB', 'XRP']
+# pair_list = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT']
+# coins = ['BTC', "ETH", 'BNB', 'XRP']
 
-data = pd.read_csv('combined.csv', index_col=0)
+# data = pd.read_csv('data_files/static/combined.csv', index_col=0)
 result_save = {}
 
 def build_classification(data, coin):
@@ -28,17 +30,20 @@ def build_classification(data, coin):
     return data
 
 def get_class(current, future):
-    if float(current) < float(future) :
+    fee_1, fee_2 = current*0.00075, future*0.00075
+    if float(current)+ fee_1 + fee_2 < float(future) :
         return 1
     else:
         return 0
 
 def preprocess(df):
+    print(df.head())
     for col in df.columns:
         if col != 'target':
             df[col] = get_percentage_change(df[col])
             df = df.replace([np.inf, -np.inf], np.nan)
             df.dropna(inplace=True)
+            print(df[col])
             df[col] = preprocessing.scale(df[col].values)
     df = df.replace([np.inf, -np.inf], np.nan)
     df.dropna(inplace=True)
@@ -129,6 +134,8 @@ def get_percentage_change(values):
     return (values-values.shift(1))/values.shift(1) 
 
 def fetch_data(update = False):
+    prediction_coin = 'WAV'
+
     if update:
         for pair in pair_list:
             update_df.BinanceDS('update', 'minute', pair)
@@ -137,7 +144,7 @@ def fetch_data(update = False):
 
     for coin in coins:
         filepath = f'data_files/minute/master_dataset_{coin}.csv'
-        df = pd.read_csv(filepath, names=['time','open','high','low','close','volume'], index_col = 0)
+        df = pd.read_csv(filepath, index_col = 0)
         df = df[['close', 'volume']]
         df.columns = [f'close_{coin}', f'volume_{coin}']
 
@@ -146,10 +153,11 @@ def fetch_data(update = False):
         else:
             data = data.join(df)
 
-    filepath = 'BTC_combined.csv'
-    df = pd.read_csv(filepath, index_col = 0)
+    OHLC_obj = OHLC_data.OHLCRealTime(realtime= False, coin=prediction_coin)
+    df = OHLC_obj.all_data
     data = data.join(df)
     data.dropna(inplace=True)
+    return data
 
 
 
@@ -163,15 +171,16 @@ def use_model(x_seq, filename = ''):
 ##Config
 sequence_length = 16
 batch_size = 32
-epochs = 10
-coin = 'BTC'
+epochs = 15
+coin = 'WAV'
 
 
 ##Running program
-fetch_data()
+data = fetch_data(update=False)
 data = build_classification(data, coin)
 train_df, validation_df = train_test_split(data, train_size=0.95, shuffle= False)
 validation_df.to_csv('unprocessed.csv')
+print(train_df.head())
 train_df = preprocess(train_df)
 validation_df = preprocess(validation_df)
 
