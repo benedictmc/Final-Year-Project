@@ -31,11 +31,17 @@ export class HomeComponent implements OnInit {
 
     this.getFeatureData().subscribe(data =>{
       this.featureData = data
+      console.log("This is the feature data")
+
       console.log(this.featureData)
-      this.TAdata = <TAdata>this.featureData.indicators
-      this.mapTAData(this.TAdata)
+      // this.TAdata = <TAdata>this.featureData.indicators
+      // this.mapTAData(this.TAdata)
       })
-      
+
+    this.getTestData().subscribe(data =>{
+        console.log("This is the test data")
+        console.log(data)
+      })
   }
 
   mapTAData(taData){
@@ -70,6 +76,16 @@ export class HomeComponent implements OnInit {
   getFeatureData (): Observable<any[]> {
     let url = this.ipUrl+'API/feature-data'
     console.log(url)
+
+    return this.http.get<any[]>(url)
+      .pipe(
+        tap(_ => _),
+        catchError(this.handleError('getFeatures', []))
+      );
+  }
+
+  getTestData (): Observable<any[]> {
+    let url = this.ipUrl+'API/test'
 
     return this.http.get<any[]>(url)
       .pipe(
