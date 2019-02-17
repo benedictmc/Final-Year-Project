@@ -12,7 +12,9 @@
 </head>
 <body>
   <div class ="title">
-    <h2>Welcome to the analytic dashboard</h2>
+    <h2>Welcome to the Analytic Dashboard</h2>
+    <div class = "main">
+
     <ul>
         <li *ngFor="let coin of coins;">
            Coin available to predict: <b>{{coin}}</b>
@@ -20,33 +22,69 @@
      </ul>
   </div>
   <br>
-    <div class = "main">
-      <table class="table table-boardered-hover">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Signal</th>
-            <th *ngFor="let recipient of TAmap | keyvalue" scope="col">{{recipient.key}}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <th scope="row">BTCUSD</th>
-            <td>Buy</td>
-            <td *ngFor="let recipient of TAmap | keyvalue" scope="col">{{recipient.value}}</td>
-          </tr>
-        </tbody>
-      </table>
-<br>
-<br>
-<br>
 
-<h5>Profit/Loss 1Hour:      XX$ <br></h5>
-<h5>Profit/Loss 1Day:      XX$ <br></h5>
-<h5>Profit/Loss Alltime:      XX$</h5>
+    <h5>The latest signals is: <b>BTCUSTD</b><br></h5>
+    <ul>
+      <ng-container *ngFor="let recipient of signals; let i = index">
+        <ng-container *ngIf="i > 10">
+            <li>{{recipient[0] * 1000 | date:'dd-MM-yyyy HH:mm'}} --> The signal is <font color="green">{{recipient[1]}}</font> --> {{(recipient[0]* 1000)+180000 | date:'dd-MM-yyyy HH:mm'}}--> Currect close value is {{recipient[2]}}$</li>
+            <li *ngIf ="recipient[1] =='Buy'">{{recipient[0] * 1000 | date:'dd-MM-yyyy HH:mm'}} --> The signal is <font color="green">{{recipient[1]}}</font> --> {{(recipient[0]* 1000)+180000 | date:'dd-MM-yyyy HH:mm'}}</li>
+            <li *ngIf ="recipient[1] =='Sell'">{{recipient[0] * 1000 | date:'dd-MM-yyyy HH:mm'}} --> The signal is <font color="red">{{recipient[1]}}</font> --> {{(recipient[0]* 1000)+180000 | date:'dd-MM-yyyy HH:mm'}}</li>
+        </ng-container>
+        </ng-container>
+    </ul>
+
+    
+  <h5>The latest Values is: <b>BTCUSTD</b><br></h5>
+  <h5>Last updated: {{updated * 1000 | date:'yyyy-MM-dd HH:mm:ss'}}</h5>
+  <button mat-button (click)="toggleTable = !toggleTable" >Show all data</button>
+
+
+  <table *ngIf='toggleTable' class="table table-boardered-hover">
+    <thead>
+      <tr>
+        <th scope="col">Techincal Indicator</th>
+        <th scope="col">Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <ng-container *ngFor="let item of data">
+        <tr *ngFor="let f of featuresNames">
+          <th scope="row">{{f}}</th>
+          <td scope="col">{{item['indicators'][f]}}</td>
+        </tr>
+    </ng-container>
+    </tbody>
+  </table>
+  <ng-template #loading>
+      <mat-spinner style="margin:0 auto;" mode="indeterminate"></mat-spinner>
+  </ng-template>
+
+
 <br><br>
+
+
+
 </div>
 </body>
-<footer>
-  <b>Author:  </b> <i>Benedict McGovern, 2019</i>
-</footer>
+
+<table *ngIf='toggleTable' class="table table-boardered-hover">
+    <thead>
+      <tr>
+        <th scope="col">Techincal Indicator</th>
+        <th scope="col">Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <ng-container *ngFor="let item of data">
+        <tr *ngFor="let f of featuresNames">
+          <th scope="row">{{f}}</th>
+          <td scope="col">{{item['indicators'][f]}}</td>
+        </tr>
+    </ng-container>
+    </tbody>
+  </table>
+
+
+
+<!-- <app-charts></app-charts> -->

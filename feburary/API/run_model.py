@@ -131,7 +131,7 @@ def update_fetaures(columns):
     with open('data/metadata.json', 'w') as f:
         json.dump(metadata, f)
 
-def run(mode, prediction_coin, update_features=True):
+def run(mode, prediction_coin, update_features=False, run_prediction = False):
     if mode == 'static':
         df = pd.read_csv('validation.csv', index_col =0 )
         df_all = pd.read_csv('unprocessed.csv', index_col =0 )
@@ -145,21 +145,44 @@ def run(mode, prediction_coin, update_features=True):
         data, unprocessed_close_vals = fetch_data(realtime=True)
         if update_features:
             update_fetaures(list(data.columns))
-        data.to_csv('data_files/visual/BTC_raw.csv')        
-        data = preprocess(data)
+        data.to_csv(f'data_files/visual/{prediction_coin}_raw.csv')   
+        if run_prediction:    
+            data = preprocess(data)
 
-        data[f'{prediction_coin}_close_up'] = unprocessed_close_vals['close']
-        data[f'time'] = unprocessed_close_vals['time']
+            data[f'{prediction_coin}_close_up'] = unprocessed_close_vals['close']
+            data[f'time'] = unprocessed_close_vals['time']
 
-        X, close_vals, time = build_realtime_squences(data, 16)
-        df_result = pd.DataFrame(index=time)
+            X, close_vals, time = build_realtime_squences(data, 16)
+            df_result = pd.DataFrame(index=time)
 
-        predicted = use_model(X)
-        df_result['signal'] = predicted
-        df_result.to_csv('data_files/visual/BTC_signals.csv')        
+            predicted = use_model(X)
+            df_result['signal'] = predicted
+            df_result.to_csv('data_files/visual/BTC_signals.csv')        
         # run_profit_loss(predicted, close_vals, time)
+
+def run_signals(coin):
+    data, unprocessed_close_vals = fetch_data(realtime=True)
+    data = preprocess(data)
+
+    data[f'{coin}_close_up'] = unprocessed_close_vals['close']
+    data[f'time'] = unprocessed_close_vals['time']
+
+    X, close_vals, time = build_realtime_squences(data, 16)
+    df_result = pd.DataFrame(index=time)
+
+    predicted = use_model(X)
+    df_result['signal'] = predicted
+    df_result['close'] = unprocessed_close_vals['close']
+
+    df_result.to_csv('data_files/visual/BTC_signals.csv')  
+    
+
+def test_close():
+    df = pd.read_csv('data_files/visual/BTC_signals.csv')
+    print(df.values[0][1:])
+
+
 
 mode  = 'realtime'
 prediction_coin = 'BTC'
-# run(mode, prediction_coin)
-
+# run_signals(prediction_coin)
